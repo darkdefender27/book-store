@@ -1,0 +1,42 @@
+{
+  "name": "tsysplex",
+  "version": "1.0.0",
+  "description": "TSYSPlex",
+  "readme": "No ReadMe",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/abhishekbiswas/book-store.git"
+  },
+  "main": "index.js",
+  "scripts": {
+    "tsc": "tsc -p src -w -outDir src/webapp/build/js",
+    "start": "live-server --open=src"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "angular2": "2.0.0-alpha.45",
+    "systemjs": "0.19.5"
+  },
+  "devDependencies": {
+    "live-server": "^0.8.2",
+    "typescript": "^1.6.2",
+    "grunt": "0.4.5",
+    "grunt-cli": "0.1.13",
+    "grunt-contrib-clean": "0.6.0",
+    "grunt-contrib-jasmine": "*",
+    "grunt-contrib-jshint": "^0.11.2",
+    "grunt-contrib-watch": "^0.6.1",
+    "grunt-protractor-runner": "2.1.0",
+    "grunt-protractor-webdriver": "0.2.0",
+    "grunt-ts": "0.2.1",
+    "jasmine-core": "^2.3.4",
+    "karma": "^0.13.15",
+    "karma-chrome-launcher": "^0.2.0",
+    "karma-coverage": "^0.4.2",
+    "karma-jasmine": "^0.3.6",
+    "karma-mocha-reporter": "^1.1.1",
+    "traceur": "0.0.92"
+  }
+}

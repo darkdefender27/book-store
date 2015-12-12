@@ -11,6 +11,7 @@
     <url>http://maven.apache.org</url>
 
     <modules>
+        <module>book-store-web</module>
         <module>book-store-service</module>
         <module>book-store-package</module>
     </modules>
