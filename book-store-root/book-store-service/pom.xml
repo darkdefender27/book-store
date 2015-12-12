@@ -1,0 +1,228 @@
+<?xml version="1.0"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.abhishek.bookstore</groupId>
+        <artifactId>book-store-root</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <groupId>org.abhishek.bookstore</groupId>
+    <artifactId>book-store-service</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>war</packaging>
+
+    <name>book-store-service</name>
+
+    <build>
+        <finalName>book-store-service</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-tools</id>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <phase>prepare-package</phase>
+                        <configuration>
+                            <target>
+                                <taskdef resource="net/sf/antcontrib/antlib.xml" classpathref="maven.plugin.classpath" />
+                                <taskdef name="fmpp" classname="fmpp.tools.AntTask" />
+                                <mkdir dir="${project.build.directory}/config-temp" />
+                                <outofdate>
+                                    <sourcefiles>
+                                        <fileset dir="src/main/deployment/config" />
+                                        <fileset dir="src/main/deployment">
+                                            <include name="**/*.properties" />
+                                            <include name="**/*.tdd" />
+                                        </fileset>
+                                    </sourcefiles>
+                                    <targetfiles>
+                                        <fileset dir="${project.build.directory}/config-temp" />
+                                    </targetfiles>
+                                    <sequential>
+                                        <property name="environment.names" value="local,qe,prod" />
+                                        <for list="${environment.names}" param="environment.name" trim="true">
+                                            <sequential>
+                                                <var name="current.environment.name" value="@{environment.name}" />
+                                                <echo message="Generating config files for ${current.environment.name}" />
+                                                <copy todir="${project.build.directory}/config-temp/@{environment.name}" overwrite="true">
+                                                    <fileset dir="src/main/deployment/config">
+                                                        <include name="**/*.ftl" />
+                                                    </fileset>
+                                                    <fileset dir="src/main/deployment">
+                                                        <include name="common.properties" />
+                                                        <include name="@{environment.name}.properties" />
+                                                        <include name="**/*.tdd" />
+                                                    </fileset>
+                                                </copy>
+                                                <fmpp destdir="${project.build.directory}/freemarker-temp/@{environment.name}" srcdir="${project.build.directory}/config-temp/@{environment.name}">
+                                                    <data expandProperties="yes">
+                                                        antProperties()
+                                                        properties(common.properties)
+                                                        properties(@{environment.name}.properties)
+                                                        fmpp : eval(' return engine; ')
+                                                    </data>
+                                                    <include name="**/*.ftl" />
+                                                </fmpp>
+                                                <filterset id="copy-config-filters" begintoken="@{" endtoken="}">
+                                                    <filtersfile file="src/main/deployment/common.properties" />
+                                                    <filtersfile file="src/main/deployment/@{environment.name}.properties" />
+                                                    <filter token="maven.project.version" value="${project.version}" />
+                                                </filterset>
+                                                <copy todir="${project.build.directory}/config/@{environment.name}" overwrite="true">
+                                                    <fileset dir="${project.build.directory}/freemarker-temp/@{environment.name}">
+                                                        <include name="**/*.ftl" />
+                                                    </fileset>
+                                                    <filterset refid="copy-config-filters" />
+                                                    <mapper>
+                                                        <mapper type="glob" from="*.xml.ftl" to="*.xml" />
+                                                        <mapper type="glob" from="*.json.ftl" to="*.json" />
+                                                        <mapper type="glob" from="*.properties.ftl" to="*.properties" />
+                                                        <mapper type="glob" from="*.bat.ftl" to="*.bat" />
+                                                        <mapper type="glob" from="*.sh.ftl" to="*.sh" />
+                                                    </mapper>
+                                                </copy>
+                                                <copy todir="${project.build.directory}/config/@{environment.name}" overwrite="true">
+                                                    <fileset dir="src/main/deployment/config">
+                                                        <include name="**/*.xml" />
+                                                        <include name="**/*.json" />
+                                                        <include name="**/*.properties" />
+                                                        <include name="**/*.bat" />
+                                                        <include name="**/*.sh" />
+                                                        <exclude name="**/*.ftl" />
+                                                    </fileset>
+                                                    <filterset refid="copy-config-filters" />
+                                                </copy>
+                                                <for param="config.file">
+                                                    <path>
+                                                        <fileset dir="${project.build.directory}/config/@{environment.name}">
+                                                            <include name="**/*.xml" />
+                                                            <include name="**/*.json" />
+                                                            <include name="**/*.properties" />
+                                                            <include name="**/*.bat" />
+                                                            <include name="**/*.sh" />
+                                                        </fileset>
+                                                    </path>
+                                                    <sequential>
+                                                        <echo message="Validating file - @{config.file}" />
+                                                        <local name="config.file.content" />
+                                                        <loadfile property="config.file.content" srcFile="@{config.file}" />
+                                                        <condition property="missing-tokens">
+                                                            <matches pattern="@\{.+\}" string="${config.file.content}" multiline="true" />
+                                                        </condition>
+                                                        <fail message="Some tokens were not replaced!" if="missing-tokens" />
+                                                    </sequential>
+                                                </for>
+                                            </sequential>
+                                        </for>
+                                    </sequential>
+                                </outofdate>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>dist</id>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <phase>package</phase>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>${project.basedir}/src/main/assembly/dist.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-maven-plugin</artifactId>
+                <configuration>
+                    <scanIntervalSeconds>10</scanIntervalSeconds>
+                    <systemProperties>
+                        <systemProperty>
+                            <name>org.abhishek.service.config</name>
+                            <value>${service.config.dir}</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <name>service.log4j2.config</name>
+                            <value>${service.log4j2.config}</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <name>server.log.dir</name>
+                            <value>${project.build.directory}/logs</value>
+                        </systemProperty>
+                    </systemProperties>
+                    <stopKey>stop-jetty</stopKey>
+                    <stopPort>9811</stopPort>
+                    <httpConnector>
+                        <port>8090</port>
+                        <idleTimeout>60000</idleTimeout>
+                    </httpConnector>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+        </dependency>
+        <!-- spring dependencies -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+        <!-- jersey dependencies -->
+        <dependency>
+            <groupId>org.glassfish.jersey.containers</groupId>
+            <artifactId>jersey-container-servlet</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jersey.core</groupId>
+            <artifactId>jersey-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jersey.ext</groupId>
+            <artifactId>jersey-spring3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jersey.media</groupId>
+            <artifactId>jersey-media-json-jackson</artifactId>
+        </dependency>
+        <!-- logging dependencies -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>
